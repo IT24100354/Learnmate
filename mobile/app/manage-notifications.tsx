@@ -9,14 +9,14 @@ import {
   RefreshControl,
   StyleSheet,
   Modal,
+  TextInput,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import * as SecureStore from 'expo-secure-store';
-import { apiCall } from '@/utils/api';
+import api from '@/utils/api';
 
 interface SchoolClass {
   _id: string;
@@ -91,27 +91,19 @@ const ManageNotificationsScreen = () => {
       const token = await SecureStore.getItemAsync('userToken');
 
       // Get options (classes and subjects)
-      const optionsResponse = await apiCall('/api/notifications/options', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const optionsResponse = await api.get('/notifications/options');
 
-      if (optionsResponse.ok) {
-        const options = await optionsResponse.json();
-        setAllClasses(options.schoolClasses || []);
-        setAllSubjects(options.teacherSubjects || []);
+      if (optionsResponse.data) {
+        setAllClasses(optionsResponse.data.schoolClasses || []);
+        setAllSubjects(optionsResponse.data.teacherSubjects || []);
       }
 
       // Get sent notifications
-      const listResponse = await apiCall('/api/notifications/list', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const listResponse = await api.get('/notifications/list');
 
-      if (listResponse.ok) {
-        const data = await listResponse.json();
+      if (listResponse.data) {
         setSentNotifications(
-          data.sentNotifications?.map((view: any) => ({
+          listResponse.data.sentNotifications?.map((view: any) => ({
             _id: view.notification._id,
             title: view.notification.title,
             message: view.notification.message,
@@ -186,39 +178,27 @@ const ManageNotificationsScreen = () => {
 
     try {
       setSending(true);
-      const token = await SecureStore.getItemAsync('userToken');
 
-      const response = await apiCall('/api/notifications/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          message: message.trim(),
-          targetRoles,
-          selectedClasses: targetRoles.includes('STUDENT') ? selectedClasses : [],
-          selectedSubjects: targetRoles.includes('STUDENT') ? selectedSubjects : [],
-        }),
+      const response = await api.post('/notifications/create', {
+        title: title.trim(),
+        message: message.trim(),
+        targetRoles,
+        selectedClasses: targetRoles.includes('STUDENT') ? selectedClasses : [],
+        selectedSubjects: targetRoles.includes('STUDENT') ? selectedSubjects : [],
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        Alert.alert('Error', error.message || 'Failed to send notification');
-        return;
+      if (response.data) {
+        Alert.alert('Success', 'Notification sent successfully');
+        setTitle('');
+        setMessage('');
+        setTargetRoles([]);
+        setSelectedClasses([]);
+        setSelectedSubjects([]);
+        await loadData();
       }
-
-      Alert.alert('Success', 'Notification sent successfully');
-      setTitle('');
-      setMessage('');
-      setTargetRoles([]);
-      setSelectedClasses([]);
-      setSelectedSubjects([]);
-      await loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending notification:', error);
-      Alert.alert('Error', 'Failed to send notification');
+      Alert.alert('Error', error?.response?.data?.message || 'Failed to send notification');
     } finally {
       setSending(false);
     }
@@ -238,33 +218,20 @@ const ManageNotificationsScreen = () => {
     }
 
     try {
-      const token = await SecureStore.getItemAsync('userToken');
-
-      const response = await apiCall(`/api/notifications/edit/${editingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: editTitle.trim(),
-          message: editMessage.trim(),
-        }),
+      const response = await api.put(`/notifications/edit/${editingId}`, {
+        title: editTitle.trim(),
+        message: editMessage.trim(),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        Alert.alert('Error', error.message || 'Failed to update notification');
-        return;
+      if (response.data) {
+        Alert.alert('Success', 'Notification updated successfully');
+        setShowEditModal(false);
+        setEditingId(null);
+        await loadData();
       }
-
-      Alert.alert('Success', 'Notification updated successfully');
-      setShowEditModal(false);
-      setEditingId(null);
-      await loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating notification:', error);
-      Alert.alert('Error', 'Failed to update notification');
+      Alert.alert('Error', error?.response?.data?.message || 'Failed to update notification');
     }
   };
 
@@ -276,23 +243,15 @@ const ManageNotificationsScreen = () => {
         style: 'destructive',
         onPress: async () => {
           try {
-            const token = await SecureStore.getItemAsync('userToken');
+            const response = await api.delete(`/notifications/delete/${notificationId}`);
 
-            const response = await apiCall(`/api/notifications/delete/${notificationId}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!response.ok) {
-              Alert.alert('Error', 'Failed to delete notification');
-              return;
+            if (response.data) {
+              Alert.alert('Success', 'Notification deleted successfully');
+              await loadData();
             }
-
-            Alert.alert('Success', 'Notification deleted successfully');
-            await loadData();
-          } catch (error) {
+          } catch (error: any) {
             console.error('Error deleting notification:', error);
-            Alert.alert('Error', 'Failed to delete notification');
+            Alert.alert('Error', error?.response?.data?.message || 'Failed to delete notification');
           }
         },
       },
@@ -328,8 +287,7 @@ const ManageNotificationsScreen = () => {
             ]}
           >
             <ThemedText style={styles.inputLabel}>Title</ThemedText>
-            {/* Note: Using TextInput from react-native */}
-            <_TextInput
+            <TextInput
               value={title}
               onChangeText={setTitle}
               placeholder="Enter notification title"
@@ -350,7 +308,7 @@ const ManageNotificationsScreen = () => {
             ]}
           >
             <ThemedText style={styles.inputLabel}>Message</ThemedText>
-            <_TextInput
+            <TextInput
               value={message}
               onChangeText={setMessage}
               placeholder="Enter notification message"
@@ -553,7 +511,7 @@ const ManageNotificationsScreen = () => {
 
             <View style={[styles.input, { borderColor: tintColor, borderWidth: 1 }]}>
               <ThemedText style={styles.inputLabel}>Title</ThemedText>
-              <_TextInput
+              <TextInput
                 value={editTitle}
                 onChangeText={setEditTitle}
                 placeholder="Enter title"
@@ -570,7 +528,7 @@ const ManageNotificationsScreen = () => {
               ]}
             >
               <ThemedText style={styles.inputLabel}>Message</ThemedText>
-              <_TextInput
+              <TextInput
                 value={editMessage}
                 onChangeText={setEditMessage}
                 placeholder="Enter message"
@@ -600,12 +558,6 @@ const ManageNotificationsScreen = () => {
       </Modal>
     </ThemedView>
   );
-};
-
-// Simple TextInput component wrapper
-const _TextInput = (props: any) => {
-  const { TextInput } = require('react-native');
-  return <TextInput {...props} />;
 };
 
 const styles = StyleSheet.create({
