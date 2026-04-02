@@ -36,6 +36,8 @@ const examRoutes = require('./routes/examRoutes');
 const feeRoutes = require('./routes/feeRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const uploadFolders = ['exams', 'timetables', 'materials', 'answer-sheets', 'payment-slips', 'notifications'];
 uploadFolders.forEach((folder) => {
@@ -54,6 +56,8 @@ app.use('/api/exams', examRoutes);
 app.use('/api/fees', feeRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/subjects', subjectRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
