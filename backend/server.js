@@ -19,9 +19,9 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/learnmate',
 //  useNewUrlParser: true, // deprecated but kept in old boilerplates, omit for mongoose > 6
 //  useUnifiedTopology: true 
 }).then(() => {
-  console.log('Connected to MongoDB');
+  console.log('✅ Connected to MongoDB successfully');
 }).catch(err => {
-  console.error('Failed to connect to MongoDB', err);
+  console.error('❌ Failed to connect to MongoDB', err);
 });
 
 // Import Routes
@@ -63,11 +63,12 @@ app.use('/api/reports', reportRoutes);
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 app.get('/', (req, res) => {
-  res.send('Learn Mate API is running');
+  res.send('API is running');
 });
 
-// Only listen if not deployed on Vercel (Render compatibility)
-if (!process.env.VERCEL) {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
-}
+// Start server with dynamic port and proper host binding
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Listening on 0.0.0.0:${PORT}`);
+});
