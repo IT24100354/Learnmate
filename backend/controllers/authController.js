@@ -114,6 +114,7 @@ const register = async (req, res) => {
       schoolClassId,
       subjectIds,
       teacherSubjectIds,
+      teacherClassIds,
       childIds
     } = req.body;
 
@@ -139,6 +140,7 @@ const register = async (req, res) => {
     const normalizedStudentSubjectIds = normalizeIdList(subjectIds);
     const normalizedTeacherSubjectIds = normalizeIdList(teacherSubjectIds);
     const normalizedChildIds = normalizeIdList(childIds);
+    const normalizedTeacherClassIds = normalizeIdList(teacherClassIds);
 
     if (role === 'STUDENT' && normalizedStudentSubjectIds.length === 0) {
       return res.status(400).json({ message: 'Students must select at least one subject.' });
@@ -146,6 +148,10 @@ const register = async (req, res) => {
 
     if (role === 'TEACHER' && normalizedTeacherSubjectIds.length === 0) {
       return res.status(400).json({ message: 'Teachers must select at least one subject to teach.' });
+    }
+
+    if (role === 'TEACHER' && normalizedTeacherClassIds.length === 0) {
+      return res.status(400).json({ message: 'Teachers must select at least one grade/class to teach.' });
     }
 
     const emailExists = await User.findOne({ email });
@@ -189,6 +195,9 @@ const register = async (req, res) => {
     if (role === 'TEACHER') {
       const subjects = await Subject.find({ _id: { $in: normalizedTeacherSubjectIds } }).select('_id');
       userData.subjects = subjects.map((subject) => subject._id);
+
+      const classes = await SchoolClass.find({ _id: { $in: normalizedTeacherClassIds } }).select('_id');
+      userData.assignedClasses = classes.map((schoolClass) => schoolClass._id);
     }
 
     const user = await User.create(userData);

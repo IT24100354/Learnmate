@@ -40,6 +40,7 @@ export default function RegisterScreen() {
   const [schoolClassId, setSchoolClassId] = useState('');
   const [subjectIds, setSubjectIds] = useState<string[]>([]);
   const [teacherSubjectIds, setTeacherSubjectIds] = useState<string[]>([]);
+  const [teacherClassIds, setTeacherClassIds] = useState<string[]>([]);
   const [childIds, setChildIds] = useState<string[]>([]);
 
   const [roles, setRoles] = useState<Role[]>(['STUDENT', 'TEACHER', 'PARENT']);
@@ -74,6 +75,7 @@ export default function RegisterScreen() {
     setSchoolClassId('');
     setSubjectIds([]);
     setTeacherSubjectIds([]);
+    setTeacherClassIds([]);
     setChildIds([]);
   }, [role]);
 
@@ -112,6 +114,11 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (currentRole === 'TEACHER' && teacherClassIds.length === 0) {
+      Alert.alert('Validation Error', 'Teachers must select at least one grade/class to teach.');
+      return;
+    }
+
     if (currentRole === 'PARENT' && childIds.length === 0) {
       Alert.alert('Validation Error', 'Parent must select at least one registered child');
       return;
@@ -131,7 +138,8 @@ export default function RegisterScreen() {
           subjectIds
         }),
         ...(currentRole === 'TEACHER' && {
-          teacherSubjectIds
+          teacherSubjectIds,
+          teacherClassIds
         }),
         ...(currentRole === 'PARENT' && {
           childIds
@@ -244,6 +252,21 @@ export default function RegisterScreen() {
 
       {currentRole === 'TEACHER' && (
         <View style={styles.dynamicContainer}>
+          <Text style={styles.label}>Grades/Classes to teach</Text>
+          <View style={styles.optionWrap}>
+            {schoolClasses.map((schoolClass) => (
+              <TouchableOpacity
+                key={schoolClass._id}
+                style={[styles.optionChip, teacherClassIds.includes(schoolClass._id) && styles.optionChipSelected]}
+                onPress={() => toggleArraySelection(schoolClass._id, teacherClassIds, setTeacherClassIds)}
+              >
+                <Text style={teacherClassIds.includes(schoolClass._id) ? styles.optionTextSelected : styles.optionText}>
+                  {schoolClass.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <Text style={styles.label}>Subjects to teach</Text>
           <View style={styles.optionWrap}>
             {subjects.map((subject) => (

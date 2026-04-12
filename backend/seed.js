@@ -76,9 +76,10 @@ const seedDatabase = async () => {
       name: 'John Smith',
       role: 'TEACHER',
       active: true,
-      subjects: [subjects[0]._id, subjects[1]._id] // Science, Mathematics
+      subjects: [subjects[0]._id, subjects[1]._id], // Science, Mathematics
+      assignedClasses: [classes[4]._id, classes[5]._id] // Grade 10, Grade 11
     });
-    console.log('✓ TEACHER user created: teacher@');
+    console.log('✓ TEACHER user created: teacher@ (assigned to Grade 10 & 11)');
 
     const student = await User.create({
       username: 'student@',
@@ -183,7 +184,7 @@ const seedDatabase = async () => {
     console.log('─'.repeat(50));
     console.log('\nRelationships:');
     console.log('- Student "Alice Johnson" is linked to Parent "Sarah Johnson"');
-    console.log('- Teacher "John Smith" teaches Science and Mathematics');
+    console.log('- Teacher "John Smith" teaches Science and Mathematics in Grade 10 & 11');
     console.log('- Parent can view student\'s timetable, attendance, marks, and fees');
     console.log('='.repeat(50) + '\n');
 

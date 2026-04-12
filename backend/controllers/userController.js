@@ -41,7 +41,7 @@ const deleteUser = async (req, res) => {
 
 const getTeacherAssignments = async (req, res) => {
   try {
-    const teacher = await User.findById(req.user.id).populate('schoolClass').populate('subjects');
+    const teacher = await User.findById(req.user.id).populate('assignedClasses').populate('subjects');
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
     }
@@ -50,9 +50,9 @@ const getTeacherAssignments = async (req, res) => {
       return res.status(403).json({ message: 'Only TEACHER role can access this endpoint' });
     }
 
-    // Return classes and subjects assigned to this teacher
+    // Return all assigned classes and subjects for this teacher
     res.json({
-      schoolClasses: teacher.schoolClass ? [teacher.schoolClass] : [],
+      schoolClasses: teacher.assignedClasses || [],
       subjects: teacher.subjects || []
     });
   } catch (error) {

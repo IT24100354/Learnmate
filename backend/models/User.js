@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Subject'
   }],
+  assignedClasses: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SchoolClass'
+  }],
   children: {
     type: [{
       type: mongoose.Schema.Types.ObjectId,
