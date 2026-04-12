@@ -150,12 +150,11 @@ const seedDatabase = async () => {
     futureDate.setDate(futureDate.getDate() + 30);
     
     const exam = await Exam.create({
-      name: 'Science Mid-Term Exam',
       title: 'Science Mid-Term Exam',
       subject: subjects[0]._id,
       teacher: teacher._id,
       schoolClass: classes[4]._id,
-      date: futureDate,
+      deadline: futureDate,
       passMark: 40,
       maxMarks: 100
     });
