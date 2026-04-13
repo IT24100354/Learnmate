@@ -32,6 +32,7 @@ export default function TabLayout() {
           title: 'Student',
           href: role === 'STUDENT' ? '/(tabs)/student-dashboard' : null,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="books.vertical.fill" color={color} />,
+          tabBarLabelStyle: { fontSize: 12 },
         }}
       />
       <Tabs.Screen
@@ -40,6 +41,7 @@ export default function TabLayout() {
           title: 'Teacher',
           href: role === 'TEACHER' ? '/(tabs)/teacher-dashboard' : null,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="briefcase.fill" color={color} />,
+          tabBarLabelStyle: { fontSize: 12 },
         }}
       />
       <Tabs.Screen
@@ -48,6 +50,7 @@ export default function TabLayout() {
           title: 'Parent',
           href: role === 'PARENT' ? '/(tabs)/parent-dashboard' : null,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
+          tabBarLabelStyle: { fontSize: 12 },
         }}
       />
       <Tabs.Screen
@@ -56,6 +59,7 @@ export default function TabLayout() {
           title: 'Admin',
           href: role === 'ADMIN' ? '/(tabs)/admin-dashboard' : null,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="building.columns.fill" color={color} />,
+          tabBarLabelStyle: { fontSize: 12 },
         }}
       />
       <Tabs.Screen
@@ -63,6 +67,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          tabBarLabelStyle: { fontSize: 12 },
         }}
       />
     </Tabs>

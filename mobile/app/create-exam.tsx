@@ -62,11 +62,15 @@ export default function CreateExamScreen() {
   };
 
   const handleDeadlineChange = (event: any, selectedDate?: Date) => {
-    // CRITICAL: Close picker first to prevent 'dismiss' crash
-    setShowDeadlinePicker(false);
+    // Android: Close picker immediately to prevent modal dismiss crash
+    setShowDeadlinePicker(Platform.OS === 'ios');
     
-    if (selectedDate) {
-      setDeadline(selectedDate);
+    // Only process if user pressed "OK" (event.type === 'set')
+    if (event.type === 'set' && selectedDate) {
+      // Defer state update to ensure native modal is fully dismissed
+      setTimeout(() => {
+        setDeadline(selectedDate);
+      }, 0);
     }
   };
 
