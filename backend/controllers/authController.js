@@ -3,9 +3,16 @@ const Subject = require('../models/Subject');
 const SchoolClass = require('../models/SchoolClass');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { sendPasswordResetOtp } = require('../services/emailService');
 
 const PASSWORD_POLICY_PATTERN = /^(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
 const REGISTRATION_ROLES = ['STUDENT', 'TEACHER', 'PARENT'];
+
+const normalizeRequiredText = (value) => (typeof value === 'string' ? value.trim() : '');
+const normalizeEmail = (value) => normalizeRequiredText(value).toLowerCase();
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET || 'secret', {
@@ -61,6 +68,29 @@ const attachChildrenToParent = async (parent, childIds) => {
   );
 };
 
+const validateParentChildren = async (childIds) => {
+  if (!childIds || childIds.length === 0) {
+    throw new Error('Parent must select at least one registered child');
+  }
+
+  const students = await User.find({
+    _id: { $in: childIds },
+    role: 'STUDENT'
+  }).select('_id name parents');
+
+  if (!students || students.length !== childIds.length) {
+    throw new Error('One or more selected children are invalid or not students');
+  }
+
+  for (const student of students) {
+    if (student.parents && student.parents.length > 0) {
+      throw new Error(`Student ${student.name} is already linked to another parent`);
+    }
+  }
+
+  return students;
+};
+
 const getRegisterOptions = async (req, res) => {
   try {
     const [rawSchoolClasses, rawSubjects, students] = await Promise.all([
@@ -106,11 +136,11 @@ const getRegisterOptions = async (req, res) => {
 const register = async (req, res) => {
   try {
     const {
-      username,
-      email,
+      username: rawUsername,
+      email: rawEmail,
       password,
-      name,
-      role,
+      name: rawName,
+      role: rawRole,
       schoolClassId,
       subjectIds,
       teacherSubjectIds,
@@ -118,19 +148,24 @@ const register = async (req, res) => {
       childIds
     } = req.body;
 
-    if (!username || username.trim() === '') {
+    const username = normalizeRequiredText(rawUsername);
+    const email = normalizeEmail(rawEmail);
+    const name = normalizeRequiredText(rawName);
+    const role = normalizeRequiredText(rawRole).toUpperCase();
+
+    if (!username) {
       return res.status(400).json({ message: 'Username is required' });
     }
     if (username.length < 3 || username.length > 50) {
       return res.status(400).json({ message: 'Username must be between 3 and 50 characters' });
     }
-    if (!email || email.trim() === '') {
+    if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
     if (!/.+\@.+\..+/.test(email)) {
       return res.status(400).json({ message: 'Email should be valid' });
     }
-    if (!name || name.trim() === '') {
+    if (!name) {
       return res.status(400).json({ message: 'Name is required' });
     }
     if (!role || !REGISTRATION_ROLES.includes(role)) {
@@ -152,6 +187,14 @@ const register = async (req, res) => {
 
     if (role === 'TEACHER' && normalizedTeacherClassIds.length === 0) {
       return res.status(400).json({ message: 'Teachers must select at least one grade/class to teach.' });
+    }
+
+    if (role === 'PARENT') {
+      try {
+        await validateParentChildren(normalizedChildIds);
+      } catch (parentValidationError) {
+        return res.status(400).json({ message: `Registration failed: ${parentValidationError.message}` });
+      }
     }
 
     const emailExists = await User.findOne({ email });
@@ -204,11 +247,7 @@ const register = async (req, res) => {
     const user = await User.create(userData);
 
     if (role === 'PARENT') {
-      try {
-        await attachChildrenToParent(user, normalizedChildIds);
-      } catch (parentLinkError) {
-        return res.status(400).json({ message: `Registration failed: ${parentLinkError.message}` });
-      }
+      await attachChildrenToParent(user, normalizedChildIds);
     }
 
     if (user) {
@@ -237,7 +276,8 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const username = normalizeRequiredText(req.body.username);
+    const { password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ message: 'Username and password are required.' });
@@ -277,9 +317,12 @@ const login = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
   try {
-    const { username, email, newPassword } = req.body;
+    const username = normalizeRequiredText(req.body.username);
+    const email = normalizeEmail(req.body.email);
+    const otp = normalizeRequiredText(req.body.otp);
+    const { newPassword } = req.body;
 
-    if ((!username || username.trim() === '') && (!email || email.trim() === '')) {
+    if (!username && !email) {
       return res.status(400).json({ message: 'Username or email is required.' });
     }
 
@@ -289,16 +332,31 @@ const forgotPassword = async (req, res) => {
       return res.status(400).json({ message: validationError.message });
     }
 
-    const query = username && username.trim() !== ''
-      ? { username: username.trim() }
-      : { email: email.trim().toLowerCase() };
+    if (!otp || !/^\d{6}$/.test(otp)) {
+      return res.status(400).json({ message: 'Enter the 6-digit OTP sent to your email.' });
+    }
+
+    const query = username
+      ? { username }
+      : { email: { $regex: `^${escapeRegExp(email)}$`, $options: 'i' } };
 
     const user = await User.findOne(query);
     if (!user) {
       return res.status(404).json({ message: 'No user found with the provided details.' });
     }
 
+    if (
+      !user.resetPasswordOtpHash ||
+      !user.resetPasswordOtpExpires ||
+      user.resetPasswordOtpExpires.getTime() < Date.now() ||
+      user.resetPasswordOtpHash !== hashOtp(otp)
+    ) {
+      return res.status(400).json({ message: 'Invalid or expired OTP.' });
+    }
+
     user.password = newPassword;
+    user.resetPasswordOtpHash = undefined;
+    user.resetPasswordOtpExpires = undefined;
     await user.save();
 
     res.json({ message: 'Password reset successful. Please log in with your new password.' });
@@ -307,4 +365,39 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-module.exports = { getRegisterOptions, register, login, forgotPassword };
+const requestPasswordResetOtp = async (req, res) => {
+  try {
+    const username = normalizeRequiredText(req.body.username);
+    const email = normalizeEmail(req.body.email);
+
+    if (!username && !email) {
+      return res.status(400).json({ message: 'Username or email is required.' });
+    }
+
+    const query = username
+      ? { username }
+      : { email: { $regex: `^${escapeRegExp(email)}$`, $options: 'i' } };
+
+    const user = await User.findOne(query);
+    if (!user) {
+      return res.status(404).json({ message: 'No user found with the provided details.' });
+    }
+
+    const otp = String(crypto.randomInt(100000, 1000000));
+    user.resetPasswordOtpHash = hashOtp(otp);
+    user.resetPasswordOtpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    await sendPasswordResetOtp({
+      to: user.email,
+      name: user.name,
+      otp
+    });
+
+    res.json({ message: 'OTP sent to your registered email address.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Failed to send OTP.' });
+  }
+};
+
+module.exports = { getRegisterOptions, register, login, forgotPassword, requestPasswordResetOtp };

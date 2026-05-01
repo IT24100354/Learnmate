@@ -63,6 +63,7 @@ export default function UsersScreen() {
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditFormState>({
     name: '',
     username: '',
@@ -215,6 +216,20 @@ export default function UsersScreen() {
     ]);
   };
 
+  const handleApproveUser = async (user: UserRecord) => {
+    setApprovingUserId(user._id);
+    resetFeedback();
+    try {
+      await api.put(`/users/${user._id}`, { active: true });
+      setSuccess(`${user.name} approved successfully.`);
+      await loadUsers();
+    } catch (err) {
+      setError(extractMessage(err));
+    } finally {
+      setApprovingUserId(null);
+    }
+  };
+
   const roleBadgeStyle = (role: UserRole) => {
     switch (role) {
       case 'ADMIN':
@@ -237,6 +252,8 @@ export default function UsersScreen() {
       return haystack.includes(keyword);
     });
   }, [search, users]);
+
+  const pendingUsers = filteredUsers.filter((user) => !user.active);
 
   if (loading) {
     return (
@@ -295,6 +312,11 @@ export default function UsersScreen() {
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         {success ? <Text style={styles.successText}>{success}</Text> : null}
+        {pendingUsers.length > 0 ? (
+          <View style={styles.pendingBar}>
+            <Text style={styles.pendingText}>{pendingUsers.length} pending registration{pendingUsers.length === 1 ? '' : 's'} need approval.</Text>
+          </View>
+        ) : null}
 
         <FlatList
           data={filteredUsers}
@@ -327,6 +349,17 @@ export default function UsersScreen() {
                 <TouchableOpacity style={styles.secondaryBtn} onPress={() => openEdit(item)}>
                   <Text style={styles.secondaryBtnText}>Edit</Text>
                 </TouchableOpacity>
+                {!item.active ? (
+                  <TouchableOpacity
+                    style={[styles.secondaryBtn, styles.approveBtn]}
+                    onPress={() => handleApproveUser(item)}
+                    disabled={approvingUserId === item._id}
+                  >
+                    <Text style={[styles.secondaryBtnText, styles.approveBtnText]}>
+                      {approvingUserId === item._id ? 'Approving...' : 'Approve'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity
                   style={[styles.secondaryBtn, styles.deleteBtn]}
                   onPress={() => handleDeleteUser(item)}
@@ -608,8 +641,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  pendingBar: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#f59e0b',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  pendingText: {
+    color: '#92400e',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   actionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     alignItems: 'stretch',
   },
@@ -645,6 +693,13 @@ const styles = StyleSheet.create({
   },
   deleteBtnText: {
     color: '#dc2626',
+  },
+  approveBtn: {
+    borderColor: '#86efac',
+    backgroundColor: '#ecfdf5',
+  },
+  approveBtnText: {
+    color: '#166534',
   },
   modalOverlay: {
     flex: 1,

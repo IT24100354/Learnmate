@@ -3,12 +3,14 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvo
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { AxiosError } from 'axios';
-import api, { getActiveApiUrl } from '../utils/api';
+import api, { getApiErrorMessage } from '../utils/api';
 import * as Storage from '../utils/storage';
 
 type ApiError = {
   message?: string;
 };
+
+const webInputReset = Platform.OS === 'web' ? ({ outlineStyle: 'none', boxShadow: 'none' } as any) : null;
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -48,10 +50,7 @@ export default function LoginScreen() {
       }
     } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiError>;
-      const message = axiosError.response?.data?.message
-        || (!axiosError.response
-          ? `Cannot connect to server (${getActiveApiUrl()}). Check backend and network.`
-          : 'Something went wrong');
+      const message = getApiErrorMessage(axiosError, 'Something went wrong');
       setLoginError(message);
       Alert.alert('Login Failed', message);
     } finally {
@@ -72,7 +71,7 @@ export default function LoginScreen() {
 
           <Text style={styles.label}>Username</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, webInputReset]}
             placeholder="Enter username"
             value={username}
             onChangeText={setUsername}
@@ -82,7 +81,7 @@ export default function LoginScreen() {
           <Text style={styles.label}>Password</Text>
           <View style={styles.passwordContainer}>
             <TextInput
-              style={styles.passwordInput}
+              style={[styles.passwordInput, webInputReset]}
               placeholder="Enter password"
               value={password}
               onChangeText={setPassword}

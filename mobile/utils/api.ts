@@ -61,6 +61,12 @@ const uniqueBaseCandidates = [...new Set(API_BASE_CANDIDATES)];
 let activeBaseUrl = uniqueBaseCandidates[0] || 'http://127.0.0.1:5000';
 export const API_URL = withApiSuffix(activeBaseUrl);
 export const getActiveApiUrl = () => withApiSuffix(activeBaseUrl);
+export const getApiErrorMessage = (error: any, fallback = 'Something went wrong') => {
+  return error?.response?.data?.message
+    || (!error?.response
+      ? `Cannot connect to server (${getActiveApiUrl()}). Check the backend URL and deployment.`
+      : fallback);
+};
 
 if (Platform.OS === 'web' && API_URL.includes('localhost')) {
   console.warn(

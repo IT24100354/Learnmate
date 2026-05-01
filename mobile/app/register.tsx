@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { AxiosError } from 'axios';
-import api from '../utils/api';
+import api, { getApiErrorMessage } from '../utils/api';
 
 type Role = 'STUDENT' | 'TEACHER' | 'PARENT';
 
@@ -28,6 +28,8 @@ type RegisterOptionsResponse = {
 type ApiError = {
   message?: string;
 };
+
+const webInputReset = Platform.OS === 'web' ? ({ outlineStyle: 'none', boxShadow: 'none' } as any) : null;
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -63,7 +65,7 @@ export default function RegisterScreen() {
         setStudents(response.data.students ?? []);
       } catch (error) {
         const axiosError = error as AxiosError<ApiError>;
-        Alert.alert('Load Error', axiosError.response?.data?.message ?? 'Failed to load registration options');
+        Alert.alert('Load Error', getApiErrorMessage(axiosError, 'Failed to load registration options'));
       } finally {
         setLoadingOptions(false);
       }
@@ -97,7 +99,7 @@ export default function RegisterScreen() {
 
   const extractErrorMessage = (error: unknown) => {
     const axiosError = error as AxiosError<ApiError>;
-    return axiosError.response?.data?.message ?? 'Something went wrong';
+    return getApiErrorMessage(axiosError, 'Something went wrong');
   };
 
   const handleRegister = async () => {
@@ -182,9 +184,8 @@ export default function RegisterScreen() {
 
       const response = await api.post('/auth/register', payload);
       
-      Alert.alert('Success', response.data?.message ?? 'Registration request sent to admin for approval.', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      Alert.alert('Success', response.data?.message ?? 'Registration request sent to admin for approval.');
+      router.replace('/');
     } catch (error: unknown) {
       Alert.alert('Registration Failed', extractErrorMessage(error));
     } finally {
@@ -206,7 +207,7 @@ export default function RegisterScreen() {
       <Text style={styles.title}>Create your Learn Mate account</Text>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, webInputReset]}
         placeholder="Full name"
         placeholderTextColor="#94a3b8"
         value={name}
@@ -214,7 +215,7 @@ export default function RegisterScreen() {
       />
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, webInputReset]}
         placeholder="Username"
         placeholderTextColor="#94a3b8"
         value={username}
@@ -224,7 +225,7 @@ export default function RegisterScreen() {
 
       <View style={styles.passwordContainer}>
         <TextInput
-          style={styles.passwordInput}
+          style={[styles.passwordInput, webInputReset]}
           placeholder="Password"
           placeholderTextColor="#94a3b8"
           value={password}
@@ -237,7 +238,7 @@ export default function RegisterScreen() {
       </View>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, webInputReset]}
         placeholder="Email address"
         placeholderTextColor="#94a3b8"
         value={email}
