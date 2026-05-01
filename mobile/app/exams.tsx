@@ -168,6 +168,7 @@ export default function ExamsScreen() {
 
   return (
     <FlatList
+      style={styles.container}
       data={exams}
       keyExtractor={(item) => item._id}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadExams(); }} />}
@@ -261,6 +262,10 @@ export default function ExamsScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -344,7 +349,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   buttonSecondary: {
-    backgroundColor: '#TRANSPARENT',
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: '#10b981',
   },

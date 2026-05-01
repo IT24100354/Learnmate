@@ -31,6 +31,7 @@ type Fee = {
 };
 
 const today = new Date().toISOString().slice(0, 10);
+const formatRupees = (amount?: number) => `Rs. ${Number(amount || 0).toFixed(2)}`;
 
 export default function FeesScreen() {
   const [role, setRole] = useState('');
@@ -153,11 +154,11 @@ export default function FeesScreen() {
           <Text style={styles.meta}>Student: {item.student?.name || '-'}</Text>
           <Text style={styles.meta}>Class: {item.schoolClass?.name || '-'}</Text>
           <Text style={styles.meta}>Due Date: {new Date(item.dueDate).toLocaleDateString()}</Text>
-          <Text style={styles.amount}>Amount: ${item.amount}</Text>
+          <Text style={styles.amount}>Amount: {formatRupees(item.amount)}</Text>
           <Text style={[styles.status, { color: statusColor[item.status] || '#111827' }]}>Status: {item.status}</Text>
 
           {item.status === 'PAID_PENDING' && item.submittedAmount ? (
-            <Text style={styles.meta}>Submitted: ${item.submittedAmount}</Text>
+            <Text style={styles.meta}>Submitted: {formatRupees(item.submittedAmount)}</Text>
           ) : null}
 
           {role === 'PARENT' && item.status === 'PENDING' ? (

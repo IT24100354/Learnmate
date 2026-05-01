@@ -86,6 +86,8 @@ const ACTION_CARDS: ActionCard[] = [
   },
 ];
 
+const formatRupees = (amount: number) => `Rs. ${Number(amount || 0).toFixed(2)}`;
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -137,7 +139,7 @@ export default function AdminDashboard() {
         setStats([
           { label: 'Total Users', value: String(totalUsers), icon: 'people', tint: '#2563eb' },
           { label: 'Total Exams', value: String(totalExams), icon: 'document-text', tint: '#0f766e' },
-          { label: 'Revenue', value: `$${Number(totalRevenue).toFixed(2)}`, icon: 'wallet', tint: '#7c3aed' },
+          { label: 'Revenue', value: formatRupees(totalRevenue), icon: 'wallet', tint: '#7c3aed' },
           { label: 'Alerts', value: String(alerts), icon: 'warning', tint: '#b45309' },
         ]);
       } catch {

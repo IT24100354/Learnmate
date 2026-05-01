@@ -4,8 +4,10 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
+const dns = require('dns');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
+dns.setServers(['1.1.1.1', '8.8.8.8']);
 
 const app = express();
 
@@ -15,7 +17,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/learnmate', {
+const mongoUri = process.env.MONGO_URI;
+
+if (!mongoUri) {
+  console.error('Failed to start server: MONGO_URI environment variable is not set');
+  process.exit(1);
+}
+
+mongoose.connect(mongoUri, {
 //  useNewUrlParser: true, // deprecated but kept in old boilerplates, omit for mongoose > 6
 //  useUnifiedTopology: true 
 }).then(() => {

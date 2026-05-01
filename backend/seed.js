@@ -1,8 +1,11 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const path = require('path');
+const dns = require('dns');
 
 // Load env vars
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
+dns.setServers(['1.1.1.1', '8.8.8.8']);
 
 // Load models
 const User = require('./models/User');
@@ -15,7 +18,14 @@ const Fee = require('./models/Fee');
 const Notification = require('./models/Notification');
 
 // Connect to DB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/learnmate')
+const mongoUri = process.env.MONGO_URI;
+
+if (!mongoUri) {
+  console.error('Connection error: MONGO_URI environment variable is not set');
+  process.exit(1);
+}
+
+mongoose.connect(mongoUri)
   .then(() => console.log('MongoDB Connected for Seeding'))
   .catch(err => {
     console.error('Connection error', err);

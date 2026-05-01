@@ -277,7 +277,7 @@ const parentPay = async (req, res) => {
 
     if (Math.abs(Number(pendingFee.amount) - amount) > 0.009) {
       return res.status(400).json({
-        message: `Entered amount does not match the required fee ($${pendingFee.amount}).`,
+        message: `Entered amount does not match the required fee (Rs. ${pendingFee.amount}).`,
       });
     }
 
