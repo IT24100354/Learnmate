@@ -18,6 +18,10 @@ const toHostFromUrlLike = (value: string | null | undefined): string | null => {
 };
 
 const getExpoLanBaseUrl = (): string | null => {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
   const constantsAny = Constants as any;
   const candidateHosts = [
     toHostFromUrlLike(Constants.expoConfig?.hostUri),
@@ -51,14 +55,19 @@ const getDefaultApiBaseUrls = (): string[] => {
 };
 
 const rawApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-const configuredBaseUrl = rawApiUrl ? rawApiUrl.replace(/\/+$/, '') : null;
+const productionWebBaseUrl = 'https://learnmate-wmt-project.onrender.com';
+const configuredBaseUrl = rawApiUrl
+  ? rawApiUrl.replace(/\/+$/, '')
+  : Platform.OS === 'web'
+    ? productionWebBaseUrl
+    : null;
 const API_BASE_CANDIDATES = [
   ...(configuredBaseUrl ? [configuredBaseUrl] : []),
-  ...getDefaultApiBaseUrls(),
+  ...(__DEV__ ? getDefaultApiBaseUrls() : []),
 ].filter(Boolean);
 const uniqueBaseCandidates = [...new Set(API_BASE_CANDIDATES)];
 
-let activeBaseUrl = uniqueBaseCandidates[0] || 'http://127.0.0.1:5000';
+let activeBaseUrl = uniqueBaseCandidates[0] || productionWebBaseUrl;
 export const API_URL = withApiSuffix(activeBaseUrl);
 export const getActiveApiUrl = () => withApiSuffix(activeBaseUrl);
 export const getApiErrorMessage = (error: any, fallback = 'Something went wrong') => {
